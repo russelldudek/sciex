@@ -1,0 +1,157 @@
+name: Refresh candidate materials
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .refresh-candidate-materials-v2
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: refresh-candidate-materials
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Apply scientific evidence and repository-link policy
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          scholar = "https://scholar.google.com/citations?user=yHQSVd8AAAAJ&hl=en"
+          html_files = [
+              "index.html", "resume.html", "cover-letter.html",
+              "interview-brief.html", "120-day-plan.html", "deployment-assay.html"
+          ]
+
+          for name in html_files:
+              path = Path(name)
+              text = path.read_text(encoding="utf-8")
+              text = text.replace('<a href="https://github.com/russelldudek/sciex">Public repository</a>', '')
+              text = text.replace('<a href="https://github.com/russelldudek/sciex/">Public repository</a>', '')
+              path.write_text(text, encoding="utf-8")
+
+          brief = Path("interview-brief.html")
+          text = brief.read_text(encoding="utf-8")
+          old = '<section><h2>4. Strongest hiring objection</h2><div class="objection-mini"><h3>No direct mass-spectrometry or diagnostics-company career</h3><p>Own it. Do not claim domain equivalence. Offer high-reliability electronics, quality systems, regulated autonomous operations, Lean/Gemba mechanisms, current cross-functional AI transformation and a bounded expert-owned proof.</p><b>Proof strategy:</b><p>Select one workflow where SCIEX experts retain decision authority; establish baseline, risk boundary and adoption owner; run the assay; review evidence with the steering committee; standardize only if the mechanism holds.</p></div></section>'
+          new = f'<section><h2>4. Strongest hiring objection</h2><div class="objection-mini"><h3>No direct mass-spectrometry or diagnostics-company career</h3><p>Own it without flattening the evidence. Russell\'s career has been outside mass-spectrometry companies, but his academic grounding in materials science, physical chemistry and biology-related studies - plus academic work indexed on <a href="{scholar}">Google Scholar</a> - provides a real scientific bridge to analytical instrumentation. Add high-reliability electronics, quality systems, regulated autonomous operations, Lean/Gemba mechanisms, current cross-functional AI transformation and a bounded expert-owned proof.</p><b>Proof strategy:</b><p>Select one workflow where SCIEX scientists, quality and regulatory experts retain decision authority; establish baseline, risk boundary and adoption owner; run the assay; review evidence with the steering committee; standardize only if the mechanism holds.</p></div></section>'
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif "provides a real scientific bridge to analytical instrumentation" not in text:
+              raise SystemExit("Could not locate interview objection block")
+
+          old_evidence = '<li><b>Compunetics:</b> high-reliability engineering/manufacturing, quality systems and technical-customer translation.</li>'
+          new_evidence = f'<li><b>Scientific and technical foundation:</b> materials science and physical chemistry, academic work indexed on <a href="{scholar}">Google Scholar</a>, plus Compunetics high-reliability engineering/manufacturing, quality systems and technical-customer translation.</li>'
+          if old_evidence in text:
+              text = text.replace(old_evidence, new_evidence, 1)
+          brief.write_text(text, encoding="utf-8")
+
+          notes = Path("source-notes.md")
+          text = notes.read_text(encoding="utf-8")
+          if "## Candidate academic source" not in text:
+              text += f'\n\n## Candidate academic source\n\n- User-provided Google Scholar profile: {scholar}\n- Used to substantiate academic experience and indexed academic work. No publication titles, citation counts or impact metrics are asserted because automated profile retrieval was blocked.\n'
+          if "## Candidate-facing repository policy" not in text:
+              text += '\n\n## Candidate-facing repository policy\n\n- The campaign repository is publishing infrastructure only. It is intentionally omitted from candidate-facing navigation, footers, resumes, cover letters, PDFs and calls to action.\n'
+          notes.write_text(text, encoding="utf-8")
+
+          audit = Path("campaign-audit.md")
+          text = audit.read_text(encoding="utf-8")
+          if "## Scientific evidence correction" not in text:
+              text += f'\n\n## Scientific evidence correction\n\n- Materials science and physical chemistry grounding were added to the candidate vision, resume, cover letter and interview brief.\n- The user-provided Google Scholar profile is cited at {scholar}.\n- No publication titles, citation counts or academic impact metrics were invented.\n'
+          if "## Candidate-facing repository-link audit" not in text:
+              text += '\n\n## Candidate-facing repository-link audit\n\n- Public campaign repository links were removed from all candidate-facing routes.\n- Repository access remains publishing infrastructure and is not presented as a candidate credential, contact method or call to action.\n- The exact phrase `Public repository` returns zero matches across candidate-facing HTML.\n'
+          audit.write_text(text, encoding="utf-8")
+
+          for name in html_files:
+              text = Path(name).read_text(encoding="utf-8")
+              if "Public repository" in text or "github.com/russelldudek/sciex" in text:
+                  raise SystemExit(f"Candidate-facing repository link remains in {name}")
+          for name in ["index.html", "resume.html", "cover-letter.html", "interview-brief.html"]:
+              text = Path(name).read_text(encoding="utf-8").lower()
+              if "materials science" not in text or "physical chemistry" not in text:
+                  raise SystemExit(f"Scientific grounding missing from {name}")
+          for name in ["resume.html", "cover-letter.html", "interview-brief.html"]:
+              if "Google Scholar" not in Path(name).read_text(encoding="utf-8"):
+                  raise SystemExit(f"Google Scholar missing from {name}")
+          PY
+
+      - name: Install PDF tooling
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qpdf poppler-utils libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf-2.0-0
+          python -m pip install --upgrade pip
+          python -m pip install weasyprint pypdf pillow
+
+      - name: Regenerate and validate PDFs
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from pypdf import PdfReader
+          from weasyprint import HTML
+
+          outputs = {
+              "resume.html": ("docs/Russell-Dudek-SCIEX-Resume.pdf", 2),
+              "cover-letter.html": ("docs/Russell-Dudek-SCIEX-Cover-Letter.pdf", 1),
+              "interview-brief.html": ("docs/Russell-Dudek-SCIEX-Interview-Brief.pdf", 3),
+              "120-day-plan.html": ("docs/Russell-Dudek-SCIEX-120-Day-Plan.pdf", 4),
+              "deployment-assay.html": ("docs/Russell-Dudek-SCIEX-AI-Deployment-Assay.pdf", 1),
+          }
+          for source, (target, expected_pages) in outputs.items():
+              HTML(filename=source, base_url=str(Path.cwd())).write_pdf(target)
+              pages = len(PdfReader(target).pages)
+              if pages != expected_pages:
+                  raise SystemExit(f"{target}: expected {expected_pages} pages, got {pages}")
+          PY
+
+          for pdf in docs/*.pdf; do qpdf --check "$pdf" >/dev/null; done
+          for pdf in docs/Russell-Dudek-SCIEX-Resume.pdf docs/Russell-Dudek-SCIEX-Cover-Letter.pdf docs/Russell-Dudek-SCIEX-Interview-Brief.pdf; do
+            text="$(pdftotext "$pdf" -)"
+            grep -qi "materials science" <<< "$text"
+            grep -qi "physical chemistry" <<< "$text"
+            grep -qi "Google Scholar" <<< "$text"
+            if grep -qi "Public repository" <<< "$text"; then
+              echo "Candidate-facing repository label remains in $pdf" >&2
+              exit 1
+            fi
+          done
+
+      - name: Commit refreshed campaign
+        shell: bash
+        run: |
+          rm -f .refresh-candidate-materials-v2 .refresh-scientific-evidence
+          rm -f .github/workflows/refresh-scientific-evidence.yml
+          rm -f .github/workflows/refresh-candidate-materials-v2.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Apply scientific evidence and candidate-link policy"
+          git push origin HEAD:main
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload refreshed site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: .
+
+      - name: Deploy refreshed site
+        id: deployment
+        uses: actions/deploy-pages@v4
