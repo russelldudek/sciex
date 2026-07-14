@@ -1,0 +1,110 @@
+name: Rebuild scientific PDFs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .rebuild-scientific-pdfs
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-scientific-pdfs
+  cancel-in-progress: true
+
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Install PDF tooling
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils qpdf libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf-2.0-0
+          python -m pip install --upgrade pip
+          python -m pip install weasyprint pypdf pillow
+
+      - name: Rebuild application PDFs
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from pypdf import PdfReader
+          from weasyprint import HTML
+
+          outputs = {
+              "resume.html": ("docs/Russell-Dudek-SCIEX-Resume.pdf", 2),
+              "cover-letter.html": ("docs/Russell-Dudek-SCIEX-Cover-Letter.pdf", 1),
+              "interview-brief.html": ("docs/Russell-Dudek-SCIEX-Interview-Brief.pdf", 3),
+          }
+
+          for source, (target, expected_pages) in outputs.items():
+              HTML(filename=source, base_url=str(Path.cwd())).write_pdf(target)
+              pages = len(PdfReader(target).pages)
+              if pages != expected_pages:
+                  raise SystemExit(f"{target}: expected {expected_pages} pages, got {pages}")
+          PY
+
+          for pdf in docs/Russell-Dudek-SCIEX-Resume.pdf docs/Russell-Dudek-SCIEX-Cover-Letter.pdf docs/Russell-Dudek-SCIEX-Interview-Brief.pdf; do
+            qpdf --check "$pdf"
+            text="$(pdftotext "$pdf" -)"
+            grep -qi "materials science" <<< "$text"
+            grep -qi "physical chemistry" <<< "$text"
+            grep -qi "Google Scholar" <<< "$text"
+            if grep -qi "Public repository" <<< "$text"; then
+              echo "Repository promotion found in $pdf" >&2
+              exit 1
+            fi
+            if grep -qi "github.com/russelldudek/sciex" <<< "$text"; then
+              echo "Campaign repository URL found in $pdf" >&2
+              exit 1
+            fi
+          done
+
+      - name: Render and inspect page surfaces
+        shell: bash
+        run: |
+          rm -rf /tmp/sciex-pdf-renders
+          mkdir -p /tmp/sciex-pdf-renders
+          pdftoppm -png -r 140 docs/Russell-Dudek-SCIEX-Resume.pdf /tmp/sciex-pdf-renders/resume >/dev/null
+          pdftoppm -png -r 140 docs/Russell-Dudek-SCIEX-Cover-Letter.pdf /tmp/sciex-pdf-renders/cover >/dev/null
+          pdftoppm -png -r 140 docs/Russell-Dudek-SCIEX-Interview-Brief.pdf /tmp/sciex-pdf-renders/brief >/dev/null
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageStat
+
+          files = sorted(Path('/tmp/sciex-pdf-renders').glob('*.png'))
+          if len(files) != 6:
+              raise SystemExit(f"Expected 6 rendered pages, got {len(files)}")
+          for file in files:
+              image = Image.open(file).convert('L')
+              if image.width < 900 or image.height < 1200:
+                  raise SystemExit(f"Unexpected render dimensions for {file}: {image.size}")
+              extrema = ImageStat.Stat(image).extrema[0]
+              if extrema == (255, 255):
+                  raise SystemExit(f"Blank rendered page: {file}")
+          PY
+
+      - name: Verify candidate-facing repository non-exposure
+        shell: bash
+        run: |
+          if grep -RniE 'Public repository|github\.com/russelldudek/sciex' --include='*.html' .; then
+            echo "Campaign repository promotion remains in candidate-facing HTML" >&2
+            exit 1
+          fi
+
+      - name: Commit regenerated PDFs
+        shell: bash
+        run: |
+          rm -f .rebuild-scientific-pdfs .github/workflows/rebuild-scientific-pdfs.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Rebuild SCIEX scientific application PDFs"
+          git push origin HEAD:main
