@@ -2,6 +2,14 @@
 
 Audit date: July 14, 2026.
 
+## Campaign state
+
+- Campaign repository: `https://github.com/russelldudek/sciex`
+- Audited branch: `main`
+- Materialized campaign source revision: `5391b282ebc911cab5ac6f70fe0555b24240e080`
+- Artifact manifest: passed; `artifact-manifest.txt` lists the complete publication set.
+- Current classification: `blocked` only on independent live GitHub Pages retrieval and exact-head response verification. The complete campaign source and downloads are committed to public `main`.
+
 ## Source and evidence
 
 - All candidate claims were checked against the maintained candidate evidence record.
@@ -9,12 +17,23 @@ Audit date: July 14, 2026.
 - Public research sources and brand decisions are documented separately.
 - No unsupported metrics, titles, customers, deployments or ownership claims were added.
 
-## Website and interaction
+## Brand fidelity
+
+- Brand fidelity: passed for source, local rendering and document continuity.
+- Visible company identity: passed using clearly typeset nominative SCIEX identification and an independent-candidate qualifier.
+- Official logo/wordmark: unavailable through the connected authoritative retrieval path, with the technical/provenance limitation documented.
+- Color-token provenance: passed.
+- Typography decision: passed.
+- Committed brand package: passed.
+- Independent-candidate distinction: passed.
+
+## Website, motion and interaction
 
 - Six HTML routes were rendered at desktop, laptop, tablet and mobile dimensions: 24 route/viewport checks.
 - No horizontal overflow, duplicate IDs, broken image references, clipped hidden document content or browser console errors were found.
-- Four AI Method Spectrum scenarios update the method state and decision readout.
+- The AI Method Spectrum supplies a role-derived motion system; four scenarios update the method state and decision readout.
 - Keyboard activation, mobile navigation and reduced-motion behavior passed.
+- UX psychology checks passed: useful starting state, value before ask, meaningful participation, honest consequence framing, contextual assumptions and dark-pattern review.
 
 ## Documents
 
@@ -28,12 +47,13 @@ Audit date: July 14, 2026.
 
 ## Public-surface integrity
 
-- Public files, PDF text and PDF metadata returned zero matches for the private orchestration name.
-- The official wordmark asset omission is documented as a retrieval/provenance limitation; no third-party copy, traced mark or proprietary font was substituted.
+- Public files, filenames, PDF text and PDF metadata returned zero matches for the private orchestration name.
+- No third-party logo copy, traced mark or proprietary font was substituted.
 - All surfaces identify the work as an independent candidate vision.
 
-## Publication contract
+## Publication
 
 - Canonical source branch: `main`.
 - Deployment workflow uses GitHub Pages' official configure, upload and deploy actions.
-- The public repository must contain every path listed in `artifact-manifest.txt` before the campaign is treated as published.
+- Live-site target: `https://russelldudek.github.io/sciex/`.
+- The execution environment could not independently resolve the GitHub Pages host, so live-route, reciprocal-navigation and PDF-response verification are not claimed.
