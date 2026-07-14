@@ -19,7 +19,7 @@ The campaign presents an AI Deployment Assay that integrates business value, wor
 
 ## Documents
 
-Final PDFs are stored under `docs/`.
+Final PDFs are stored under `docs/`. The committed publication set is listed in `artifact-manifest.txt`.
 
 ## Provenance and independence
 
@@ -27,4 +27,9 @@ The job description was supplied directly to Russell. Public company research is
 
 ## Publication
 
-Canonical branch: `main`. Candidate vision target: https://russelldudek.github.io/sciex/
+- Canonical branch: `main`
+- Candidate vision target: https://russelldudek.github.io/sciex/
+- Campaign source revision: `5391b282ebc911cab5ac6f70fe0555b24240e080`
+- Completion and verification record: `campaign-audit.md`
+
+The final audited `main` head is reported in the candidate handoff after the audit record itself is committed.
