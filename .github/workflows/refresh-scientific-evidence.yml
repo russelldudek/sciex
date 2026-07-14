@@ -1,0 +1,164 @@
+name: Refresh scientific evidence
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .refresh-scientific-evidence
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-scientific-evidence
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Update campaign source
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          scholar = "https://scholar.google.com/citations?user=yHQSVd8AAAAJ&hl=en"
+
+          def replace(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"Expected source block not found in {path}")
+              file.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace(
+              "index.html",
+              '<section class="objection"><div><span>The hard objection</span><h2>Russell has not spent his career inside a mass-spectrometry or diagnostics operating company.</h2></div><div><p>That gap should not be disguised. The adjacent case is high-reliability engineering, quality systems, regulated autonomy, global technology translation, Lean/Gemba operating discipline and current AI-first transformation across real business workflows.</p><p>The right proof is not a claim of domain equivalence. It is a bounded first workflow, explicit expert authority and measurable evidence that the deployment mechanism works inside SCIEX.</p></div></section>',
+              f'<section class="objection"><div><span>The hard objection</span><h2>Russell has not spent his career inside a mass-spectrometry or diagnostics operating company - but he is not approaching the science cold.</h2></div><div><p>His academic grounding includes materials science, physical chemistry and biology-related studies, with academic work indexed on <a href="{scholar}">Google Scholar</a>. That scientific foundation sits alongside high-reliability engineering, quality systems, regulated autonomy, global technology translation, Lean/Gemba operating discipline and current AI-first transformation across real business workflows.</p><p>The right proof is not a claim of domain equivalence. It is a bounded first workflow, explicit scientist and quality authority, and measurable evidence that the deployment mechanism works inside SCIEX.</p></div></section>'
+          )
+
+          replace(
+              "resume.html",
+              'Operator-technologist who makes complex work visible, connects technical and business teams, and builds operating mechanisms that turn emerging technology into adopted, measurable outcomes.',
+              'Scientifically grounded operator-technologist who makes complex work visible, connects technical and business teams, and builds operating mechanisms that turn emerging technology into adopted, measurable outcomes.'
+          )
+          replace(
+              "resume.html",
+              '<p>Academic grounding includes materials science, physical chemistry and biology-related studies.</p>',
+              f'<p>Materials science, physical chemistry and biology-related studies; <a href="{scholar}">academic work indexed on Google Scholar</a>.</p>'
+          )
+          replace(
+              "resume.html",
+              '<article><b>03 High-reliability controls</b><p>Engineering-to-operations translation, quality systems, root cause, process control and technical-customer accountability.</p></article>',
+              '<article><b>03 Scientific and high-reliability controls</b><p>Materials science and physical chemistry grounding combined with engineering-to-operations translation, quality systems, root cause and process control.</p></article>'
+          )
+
+          replace(
+              "cover-letter.html",
+              '<p>I would enter SCIEX with humility about the domain boundary. I do not claim mass-spectrometry or diagnostics-company tenure. I do bring adjacent evidence in high-reliability technical operations, regulated autonomous systems, quality and process controls, Lean/Gemba leadership and AI-enabled workflow design. I would prove fit through a bounded, expert-owned workflow rather than through inflated equivalence.</p>',
+              f'<p>I would enter SCIEX with humility about the domain boundary. I do not claim mass-spectrometry or diagnostics-company tenure. I do bring academic grounding in materials science and physical chemistry, academic work indexed on <a href="{scholar}">Google Scholar</a>, and adjacent evidence in high-reliability technical operations, regulated autonomy, quality controls, Lean/Gemba leadership and AI-enabled workflow design. I would prove fit through a bounded, expert-owned workflow rather than inflated equivalence.</p>'
+          )
+
+          replace(
+              "interview-brief.html",
+              '<section><h2>4. Strongest hiring objection</h2><div class="objection-mini"><h3>No direct mass-spectrometry or diagnostics-company career</h3><p>Own it. Do not claim domain equivalence. Offer high-reliability electronics, quality systems, regulated autonomous operations, Lean/Gemba mechanisms, current cross-functional AI transformation and a bounded expert-owned proof.</p><b>Proof strategy:</b><p>Select one workflow where SCIEX experts retain decision authority; establish baseline, risk boundary and adoption owner; run the assay; review evidence with the steering committee; standardize only if the mechanism holds.</p></div></section>',
+              f'<section><h2>4. Strongest hiring objection</h2><div class="objection-mini"><h3>No direct mass-spectrometry or diagnostics-company career</h3><p>Own it without flattening the evidence. Russell\'s career has been outside mass-spectrometry companies, but his academic grounding in materials science, physical chemistry and biology-related studies - plus academic work indexed on <a href="{scholar}">Google Scholar</a> - provides a real scientific bridge to analytical instrumentation. Add high-reliability electronics, quality systems, regulated autonomous operations, Lean/Gemba mechanisms, current cross-functional AI transformation and a bounded expert-owned proof.</p><b>Proof strategy:</b><p>Select one workflow where SCIEX scientists, quality and regulatory experts retain decision authority; establish baseline, risk boundary and adoption owner; run the assay; review evidence with the steering committee; standardize only if the mechanism holds.</p></div></section>'
+          )
+          replace(
+              "interview-brief.html",
+              '<li><b>Compunetics:</b> high-reliability engineering/manufacturing, quality systems and technical-customer translation.</li>',
+              f'<li><b>Scientific and technical foundation:</b> materials science and physical chemistry, academic work indexed on <a href="{scholar}">Google Scholar</a>, plus Compunetics high-reliability engineering/manufacturing, quality systems and technical-customer translation.</li>'
+          )
+
+          source_notes = Path("source-notes.md")
+          notes = source_notes.read_text(encoding="utf-8")
+          marker = "## Candidate academic source"
+          if marker not in notes:
+              notes += f'\n\n{marker}\n\n- User-provided Google Scholar profile: {scholar}\n- Used to substantiate academic experience and indexed academic work. No publication titles, citation counts or impact metrics are asserted because automated profile retrieval was blocked.\n'
+              source_notes.write_text(notes, encoding="utf-8")
+
+          audit = Path("campaign-audit.md")
+          audit_text = audit.read_text(encoding="utf-8")
+          audit_marker = "## Scientific evidence correction"
+          if audit_marker not in audit_text:
+              audit_text += f'\n\n{audit_marker}\n\n- Materials science and physical chemistry grounding were added to the candidate vision, resume, cover letter and interview brief.\n- The user-provided Google Scholar profile is cited at {scholar}.\n- No publication titles, citation counts or academic impact metrics were invented.\n- Updated PDFs must retain the exact 2-page resume, 1-page cover letter and 3-page interview brief contracts.\n'
+              audit.write_text(audit_text, encoding="utf-8")
+          PY
+
+      - name: Install document tooling
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils qpdf libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf-2.0-0
+          python -m pip install --upgrade pip
+          python -m pip install weasyprint pypdf pillow
+
+      - name: Regenerate and validate PDFs
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from pypdf import PdfReader
+          from weasyprint import HTML
+
+          outputs = {
+              "resume.html": ("docs/Russell-Dudek-SCIEX-Resume.pdf", 2),
+              "cover-letter.html": ("docs/Russell-Dudek-SCIEX-Cover-Letter.pdf", 1),
+              "interview-brief.html": ("docs/Russell-Dudek-SCIEX-Interview-Brief.pdf", 3),
+              "120-day-plan.html": ("docs/Russell-Dudek-SCIEX-120-Day-Plan.pdf", 4),
+              "deployment-assay.html": ("docs/Russell-Dudek-SCIEX-AI-Deployment-Assay.pdf", 1),
+          }
+          for source, (target, expected_pages) in outputs.items():
+              HTML(filename=source, base_url=str(Path.cwd())).write_pdf(target)
+              pages = len(PdfReader(target).pages)
+              if pages != expected_pages:
+                  raise SystemExit(f"{target}: expected {expected_pages} pages, got {pages}")
+          PY
+
+          for pdf in docs/*.pdf; do
+            qpdf --check "$pdf"
+          done
+
+          for pdf in docs/Russell-Dudek-SCIEX-Resume.pdf docs/Russell-Dudek-SCIEX-Cover-Letter.pdf docs/Russell-Dudek-SCIEX-Interview-Brief.pdf; do
+            text="$(pdftotext "$pdf" -)"
+            grep -qi "materials science" <<< "$text"
+            grep -qi "physical chemistry" <<< "$text"
+            grep -qi "Google Scholar" <<< "$text"
+          done
+
+          rm -rf /tmp/sciex-renders
+          mkdir -p /tmp/sciex-renders
+          pdftoppm -png -r 140 docs/Russell-Dudek-SCIEX-Resume.pdf /tmp/sciex-renders/resume >/dev/null
+          pdftoppm -png -r 140 docs/Russell-Dudek-SCIEX-Cover-Letter.pdf /tmp/sciex-renders/cover >/dev/null
+          pdftoppm -png -r 140 docs/Russell-Dudek-SCIEX-Interview-Brief.pdf /tmp/sciex-renders/brief >/dev/null
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageStat
+          files = sorted(Path('/tmp/sciex-renders').glob('*.png'))
+          if len(files) != 6:
+              raise SystemExit(f"Expected 6 rendered pages, got {len(files)}")
+          for file in files:
+              image = Image.open(file).convert('L')
+              if image.width < 900 or image.height < 1200:
+                  raise SystemExit(f"Unexpected render dimensions for {file}: {image.size}")
+              stat = ImageStat.Stat(image)
+              if stat.extrema[0] == (255, 255):
+                  raise SystemExit(f"Blank rendered page: {file}")
+          PY
+
+      - name: Commit refreshed materials
+        shell: bash
+        run: |
+          rm -f .refresh-scientific-evidence .github/workflows/refresh-scientific-evidence.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add scientific and academic evidence to SCIEX campaign"
+          git push origin HEAD:main
