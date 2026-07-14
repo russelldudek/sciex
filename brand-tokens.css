@@ -1,0 +1,13 @@
+/* Token provenance is documented in brand-intelligence.md. */
+:root{
+  --official-ink:#06080b; /* source-observed SCIEX primary identity treatment */
+  --source-cyan:#008fb8; /* sampled approximation from public SCIEX identity/product pages */
+  --source-blue:#1464c0; /* sampled approximation from public digital surfaces */
+  --source-violet:#6c4fd3; /* sampled approximation from public product imagery */
+  --source-silver:#b8c0c8; /* sampled approximation from SCIEX swoosh/technical surfaces */
+  --candidate-aqua:#5ee7df; /* candidate-original spectrum highlight */
+  --paper:#ffffff; --mist:#f3f6f8; --line:#d7dde2; --muted:#58636c; --dark:#090d12;
+  --display:"Arial Narrow","Aptos Display","Helvetica Neue",Arial,sans-serif;
+  --body:"Aptos","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+}
