@@ -1,0 +1,96 @@
+name: Regenerate document PDFs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - resume.html
+      - cover-letter.html
+      - styles.css
+      - brand-tokens.css
+      - .github/workflows/regenerate-document-pdfs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regenerate-document-pdfs
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out campaign
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.54.1
+          npx playwright install --with-deps chromium
+
+      - name: Generate resume and cover-letter PDFs
+        run: |
+          python3 -m http.server 8000 >/tmp/sciex-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          node <<'NODE'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const targets = [
+              ['resume.html', 'docs/Russell-Dudek-SCIEX-Resume.pdf'],
+              ['cover-letter.html', 'docs/Russell-Dudek-SCIEX-Cover-Letter.pdf'],
+            ];
+
+            for (const [route, output] of targets) {
+              const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+              await page.goto(`http://127.0.0.1:8000/${route}`, { waitUntil: 'networkidle' });
+              await page.emulateMedia({ media: 'print' });
+              await page.pdf({
+                path: output,
+                printBackground: true,
+                preferCSSPageSize: true,
+                width: '8.5in',
+                height: '11in',
+                margin: { top: '0', right: '0', bottom: '0', left: '0' },
+              });
+              await page.close();
+            }
+
+            await browser.close();
+          })();
+          NODE
+
+      - name: Verify page counts and visible URL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+          test "$(pdfinfo docs/Russell-Dudek-SCIEX-Resume.pdf | awk '/^Pages:/ {print $2}')" = "2"
+          test "$(pdfinfo docs/Russell-Dudek-SCIEX-Cover-Letter.pdf | awk '/^Pages:/ {print $2}')" = "1"
+          pdftotext docs/Russell-Dudek-SCIEX-Resume.pdf /tmp/resume.txt
+          pdftotext docs/Russell-Dudek-SCIEX-Cover-Letter.pdf /tmp/cover.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          url = 'https://russelldudek.github.io/sciex/'
+          for path in ('/tmp/resume.txt', '/tmp/cover.txt'):
+              text = ''.join(Path(path).read_text(errors='ignore').split())
+              assert url in text, f'Visible candidate URL missing from {path}'
+          PY
+
+      - name: Commit regenerated PDFs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/Russell-Dudek-SCIEX-Resume.pdf docs/Russell-Dudek-SCIEX-Cover-Letter.pdf
+          if ! git diff --cached --quiet; then
+            git commit -m "Regenerate PDFs with visible candidate URL"
+            git push
+          fi
